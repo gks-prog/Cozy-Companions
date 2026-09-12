@@ -1,0 +1,57 @@
+{
+  "name": "cozy-companions",
+  "version": "1.0.0",
+  "description": "A private, affectionate Windows desktop pet with a puppy and kitten.",
+  "main": "src/main.js",
+  "author": "Gaurav Kumar Sharma",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "uiohook-napi": "1.5.5"
+  },
+  "devDependencies": {
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "in.wenonbont.cozycompanions",
+    "productName": "Cozy Companions",
+    "asar": true,
+    "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ],
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "Cozy-Companions-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cozy Companions",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico"
+    }
+  }
+}

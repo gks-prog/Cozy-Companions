@@ -1,0 +1,36 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cozy-Companions-Windows
+          path: dist/Cozy-Companions-Setup-*.exe
+      - name: Publish public latest release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $asset = Get-ChildItem "dist/Cozy-Companions-Setup-*.exe" | Select-Object -First 1
+          if (gh release view latest 2>$null) {
+            gh release upload latest $asset.FullName --clobber
+          } else {
+            gh release create latest $asset.FullName --title "Cozy Companions" --notes "Latest Windows installer. Download the .exe, install, then choose your puppy or kitten."
+          }
