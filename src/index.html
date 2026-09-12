@@ -61,7 +61,7 @@
             <button type="button" data-style="pixel">Pixel</button>
             <button type="button" data-style="classic">Classic</button>
           </div>
-          <small id="style-note">Pixel supports exact colours and patterns. Classic preserves the original art.</small>
+          <small id="style-note">Both styles support palette tinting. New marking shapes are pixel-only.</small>
         </fieldset>
         <fieldset class="palette-field"><legend>Pixel palette</legend>
           <div class="colors">
@@ -82,13 +82,13 @@
       <div id="thought" class="thought" aria-hidden="true"></div>
       <div id="pet" class="pet pixel" role="button" tabindex="0" aria-label="Pet your companion">
         <canvas id="pixel-pet" width="64" height="64"></canvas>
-        <span id="classic-pet" class="classic-pet"></span>
+        <canvas id="classic-pet" class="classic-pet" width="256" height="256"></canvas>
       </div>
       <div id="heart" class="heart" aria-hidden="true">♥</div>
     </section>
   </main>
   <script src="pixel-pet.js"></script>
+  <script src="classic-pet.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
-

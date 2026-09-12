@@ -17,7 +17,7 @@ const heart = document.querySelector('#heart');
 const bond = document.querySelector('#bond');
 const bondValue = document.querySelector('#bond-value');
 
-const classicCells = {
+const classicCells = window.classicCells = {
   puppy: { idle:[0,0], blink:[1,0], look:[3,0], happy:[2,1], startled:[0,2], sleep:[1,2], pounce:[0,3], groom:[2,3], drag:[3,3], typing:[0,3] },
   kitten: { idle:[0,0], blink:[1,0], look:[2,0], happy:[1,1], startled:[3,1], sleep:[0,2], pounce:[3,2], groom:[0,3], drag:[1,3], typing:[3,2] }
 };
@@ -43,6 +43,7 @@ let strokes = 0;
 let lastPounce = 0;
 
 const pixelRenderer = new window.PixelPet(pixelCanvas, profile);
+const classicRenderer = new window.ClassicPet(classicPet, profile);
 pixelRenderer.start();
 
 document.querySelectorAll('.choice-canvas').forEach(canvas => {
@@ -60,7 +61,9 @@ function safeName(value, kind = profile.pet) {
 function setClassicCell(name) {
   const kind = classicCells[profile.pet] ? profile.pet : 'kitten';
   const [column, row] = classicCells[kind][name] || classicCells[kind].idle;
-  classicPet.style.backgroundPosition = `${column * 33.333333}% ${row * 33.333333}%`;
+  void column;
+  void row;
+  classicRenderer.setState(name);
 }
 
 function applyProfile(next) {
@@ -69,6 +72,7 @@ function applyProfile(next) {
   pet.className = `pet ${profile.style === 'classic' ? 'classic' : 'pixel'} ${profile.pet}`;
   pet.setAttribute('aria-label', `Pet ${profile.petName}`);
   pixelRenderer.setProfile(profile);
+  classicRenderer.setProfile(profile);
   bond.value = Number(profile.affection) || 0;
   bondValue.textContent = `${Math.round(bond.value)}%`;
   setState('idle');
@@ -129,12 +133,13 @@ function refreshCustomizer() {
   petNameInput.value = profile.petName;
   draft = { ...profile };
   patternInput.value = draft.pattern || 'mask';
+  patternInput.disabled = draft.style === 'classic';
   baseColorInput.value = draft.baseColor || '#f4eadb';
   patchColorInput.value = draft.patchColor || '#9b6548';
   eyeColorInput.value = draft.eyeColor || '#d89b35';
   markActive('[data-kind]', draft.pet);
   markActive('[data-style]', draft.style);
-  paletteField.classList.toggle('disabled', draft.style === 'classic');
+  paletteField.classList.remove('disabled');
   bond.value = Number(profile.affection) || 0;
   bondValue.textContent = `${Math.round(bond.value)}%`;
 }
@@ -162,7 +167,8 @@ document.querySelectorAll('[data-kind]').forEach(button => button.addEventListen
 document.querySelectorAll('[data-style]').forEach(button => button.addEventListener('click', () => {
   draft.style = button.dataset.style;
   markActive('[data-style]', draft.style);
-  paletteField.classList.toggle('disabled', draft.style === 'classic');
+  patternInput.disabled = draft.style === 'classic';
+  paletteField.classList.remove('disabled');
 }));
 
 customizerForm.addEventListener('submit', async event => {
@@ -330,6 +336,7 @@ window.petAPI.onReminder(reminder => {
   setState('happy', 900);
   const messages = {
     focus:'Focus session complete — nice work!',
+    break:'Break over — ready for another round?',
     water:'Water break?',
     stretch:'Time for a tiny stretch!'
   };
@@ -366,4 +373,3 @@ window.petAPI.getSettings().then(current => {
   resetIdleTimer();
   schedulePersonalityMoment();
 });
-

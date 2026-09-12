@@ -9,12 +9,10 @@ button { -webkit-app-region:no-drag; }
 .pet-wrap { position:absolute; inset:0; display:grid; place-items:center; }
 .pet { width:190px; height:190px; position:relative; cursor:grab; transform-origin:50% 82%; filter:drop-shadow(0 8px 5px rgba(55,31,22,.2)); animation:breathe 2.7s steps(2,end) infinite; will-change:transform; outline:none; }
 #pixel-pet { width:190px; height:190px; display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
-.classic-pet { display:none; width:214px; height:214px; margin:-12px; background-repeat:no-repeat; background-size:400% 400%; background-position:0 0; }
+.classic-pet { display:none; width:214px; height:214px; margin:-12px; }
 .pet.classic { width:214px; height:214px; }
 .pet.classic #pixel-pet { display:none; }
 .pet.classic .classic-pet { display:block; }
-.pet.classic.puppy .classic-pet { background-image:url('../assets/puppy-sprites.png'); }
-.pet.classic.kitten .classic-pet { background-image:url('../assets/kitten-sprites.png'); }
 .pet.dragging { cursor:grabbing; animation:dangle .55s steps(3,end) infinite alternate; }
 .pet.typing { animation:typing-bounce .2s steps(3,end); }
 .pet.happy { animation:happy .55s steps(4,end); }
@@ -35,6 +33,7 @@ h1,h2 { margin:0 0 10px; color:#4f3023; font-size:18px; letter-spacing:-.025em; 
 .field>span, legend { display:block; margin:0 0 4px; color:#8b6552; font-size:8px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
 .field input,.field select { width:100%; height:32px; padding:0 9px; border:1px solid rgba(107,64,45,.18); border-radius:8px; outline:none; background:rgba(255,255,255,.88); color:#513224; font-weight:650; }
 .field input:focus,.field select:focus { border-color:#d68d69; box-shadow:0 0 0 3px rgba(214,141,105,.13); }
+.field select:disabled { opacity:.5; cursor:not-allowed; }
 .top-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:8px; }
 .choices { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .choice { display:flex; min-width:0; flex-direction:column; align-items:center; padding:5px 5px 9px; border:1px solid rgba(107,64,45,.13); border-radius:15px; background:rgba(255,255,255,.76); color:#5b392a; cursor:pointer; transition:transform .12s ease,border-color .12s ease; }
@@ -68,4 +67,3 @@ progress { width:100%; height:7px; accent-color:#e88975; }
 @keyframes sleep { 50%{transform:translateY(3px) scale(1.01)} }
 @keyframes heart-pop { 0%{opacity:0;transform:translate(-50%,8px) scale(.5)} 30%{opacity:1;transform:translate(-50%,-3px) scale(1.15)} 100%{opacity:0;transform:translate(-50%,-35px) scale(.9)} }
 @media (prefers-reduced-motion:reduce) { .pet,.heart { animation-duration:.001ms!important; animation-iteration-count:1!important; } }
-

@@ -1,13 +1,13 @@
 {
   "name": "cozy-companions",
-  "version": "2.0.0",
-  "description": "An original customizable pixel cat and puppy for the Windows desktop.",
+  "version": "2.1.0",
+  "description": "Customizable Pixel and Classic desktop pets for Windows.",
   "main": "src/main.js",
   "author": "Gaurav Kumar Sharma",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "test": "node tests/smoke.js && node --check src/main.js && node --check src/preload.js && node --check src/pixel-pet.js && node --check src/renderer.js",
+    "test": "node tests/smoke.js && node --check src/main.js && node --check src/preload.js && node --check src/pixel-pet.js && node --check src/classic-pet.js && node --check src/renderer.js",
     "dist": "electron-builder --win nsis --publish never",
     "pack": "electron-builder --dir"
   },

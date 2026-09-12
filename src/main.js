@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, screen, nativeImage, powerMonitor } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, screen, nativeImage, powerMonitor, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,6 +12,8 @@ let lastTypingPulse = 0;
 let lastCursorPoint;
 let saveTimer;
 let focusTimer;
+let focusPhase = null;
+let focusCycles = 0;
 let waterTimer;
 let stretchTimer;
 let typingSide = 'right';
@@ -216,7 +218,9 @@ function refreshTrayMenu() {
       ]
     },
     { type: 'separator' },
-    { label: 'Start 25-minute focus', click: startFocusSession },
+    focusPhase
+      ? { label: `Stop Pomodoro · ${focusPhase === 'focus' ? 'focusing' : 'break'}`, click: stopFocusSession }
+      : { label: 'Start Pomodoro (25/5)', click: startFocusSession },
     {
       label: 'Water reminders (45 min)', type: 'checkbox', checked: settings.waterReminders,
       click: item => updateProfile({ waterReminders: item.checked })
@@ -291,12 +295,50 @@ function updateProfile(next = {}) {
 function sendReminder(kind) {
   if (!petWindow || petWindow.isDestroyed()) return;
   petWindow.webContents.send('wellness-reminder', kind);
+  const messages = {
+    focus: ['Focus complete', 'Take a five-minute break.'],
+    break: ['Break complete', 'Ready for another 25-minute focus block?'],
+    water: ['Water break', 'Your companion thinks you should hydrate.'],
+    stretch: ['Stretch break', 'Stand up and move for a moment.']
+  };
+  const message = messages[kind];
+  if (message && Notification.isSupported()) {
+    new Notification({ title: message[0], body: message[1] }).show();
+  }
 }
 
 function startFocusSession() {
   clearTimeout(focusTimer);
-  petWindow?.webContents.send('wellness-reminder', 'Focus started — I’ll watch the clock!');
-  focusTimer = setTimeout(() => sendReminder('focus'), 25 * 60 * 1000);
+  focusPhase = 'focus';
+  focusCycles = 0;
+  petWindow?.webContents.send('wellness-reminder', 'Pomodoro started · 25 min focus');
+  scheduleFocusPhase();
+}
+
+function scheduleFocusPhase() {
+  clearTimeout(focusTimer);
+  const duration = focusPhase === 'focus' ? 25 : 5;
+  focusTimer = setTimeout(() => {
+    if (focusPhase === 'focus') {
+      focusCycles += 1;
+      sendReminder('focus');
+      focusPhase = 'break';
+    } else {
+      sendReminder('break');
+      focusPhase = 'focus';
+    }
+    refreshTrayMenu();
+    scheduleFocusPhase();
+  }, duration * 60 * 1000);
+  refreshTrayMenu();
+}
+
+function stopFocusSession() {
+  clearTimeout(focusTimer);
+  focusTimer = null;
+  focusPhase = null;
+  petWindow?.webContents.send('wellness-reminder', `Pomodoro stopped · ${focusCycles} focus block${focusCycles === 1 ? '' : 's'}`);
+  refreshTrayMenu();
 }
 
 function refreshWellnessTimers() {
