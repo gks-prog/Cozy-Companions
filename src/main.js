@@ -16,7 +16,8 @@ let settings = {};
 const PETS = new Set(['puppy', 'kitten']);
 const COATS = new Set(['brown', 'golden', 'cocoa', 'ash', 'cream']);
 
-if (!app.requestSingleInstanceLock()) {
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -284,13 +285,15 @@ ipcMain.on('affection', (_event, delta) => {
 });
 ipcMain.on('show-menu', () => tray?.popUpContextMenu());
 
-app.whenReady().then(() => {
-  loadSettings();
-  createWindow();
-  createTray();
-  startGlobalInput();
-  app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
-});
+if (hasSingleInstanceLock) {
+  app.whenReady().then(() => {
+    loadSettings();
+    createWindow();
+    createTray();
+    startGlobalInput();
+    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  });
+}
 
 // Keeping a listener registered prevents Windows from quitting when the pet
 // window is temporarily recreated; the tray remains the application's owner.
