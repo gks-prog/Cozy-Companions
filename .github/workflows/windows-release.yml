@@ -39,5 +39,5 @@ jobs:
             }
             gh release upload latest $asset.FullName --clobber
           } else {
-            gh release create latest $asset.FullName --title "Cozy Companions" --notes "Latest Windows installer. Choose a puppy or kitten, name them, customize their coat, and keep them anywhere on your desktop."
+            gh release create latest $asset.FullName --title "Cozy Companions" --notes "Latest Windows installer. Original pixel cat and puppy, custom colours and patterns, typing and cursor reactions, dragging, names, reminders, and preserved Classic artwork."
           }

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const WINDOW_SIZE = 320;
-const PET_SIZE = 238;
+const PET_SIZE = 190;
 let petWindow;
 let tray;
 let globalHook;
@@ -11,10 +11,15 @@ let cursorTimer;
 let lastTypingPulse = 0;
 let lastCursorPoint;
 let saveTimer;
+let focusTimer;
+let waterTimer;
+let stretchTimer;
+let typingSide = 'right';
 let settings = {};
 
 const PETS = new Set(['puppy', 'kitten']);
-const COATS = new Set(['brown', 'golden', 'cocoa', 'ash', 'cream']);
+const STYLES = new Set(['pixel', 'classic']);
+const PATTERNS = new Set(['mask', 'tuxedo', 'socks', 'spots', 'calico', 'tabby', 'solid']);
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
@@ -29,10 +34,16 @@ if (!hasSingleInstanceLock) {
 const defaults = {
   pet: null,
   petName: '',
-  coat: 'brown',
+  style: 'pixel',
+  pattern: 'mask',
+  baseColor: '#f4eadb',
+  patchColor: '#9b6548',
+  eyeColor: '#d89b35',
   affection: 50,
   energy: 100,
   reactionsPaused: false,
+  waterReminders: false,
+  stretchReminders: false,
   launchAtLogin: true,
   windowPosition: null
 };
@@ -49,7 +60,13 @@ function loadSettings() {
   }
   settings.pet = PETS.has(settings.pet) ? settings.pet : null;
   settings.petName = sanitizeName(settings.petName, settings.pet);
-  settings.coat = COATS.has(settings.coat) ? settings.coat : 'brown';
+  const legacyPatches = { brown:'#9b6548', golden:'#d4943d', cocoa:'#594039', ash:'#888987', cream:'#d3ad82' };
+  if (!settings.patchColor && settings.coat) settings.patchColor = legacyPatches[settings.coat];
+  settings.style = STYLES.has(settings.style) ? settings.style : 'pixel';
+  settings.pattern = PATTERNS.has(settings.pattern) ? settings.pattern : 'mask';
+  settings.baseColor = sanitizeHex(settings.baseColor, '#f4eadb');
+  settings.patchColor = sanitizeHex(settings.patchColor, '#9b6548');
+  settings.eyeColor = sanitizeHex(settings.eyeColor, '#d89b35');
   settings.affection = Math.max(0, Math.min(100, Number(settings.affection) || 50));
 }
 
@@ -73,6 +90,11 @@ function sanitizeName(value, petType = settings.pet) {
   const cleaned = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 18);
   if (cleaned) return cleaned;
   return petType === 'kitten' ? 'Mochi' : petType === 'puppy' ? 'Milo' : '';
+}
+
+function sanitizeHex(value, fallback) {
+  const text = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : fallback;
 }
 
 function safeInitialPosition() {
@@ -175,16 +197,33 @@ function refreshTrayMenu() {
       click: () => choosePet('kitten')
     },
     { type: 'separator' },
-    { label: 'Customize name & coat…', click: () => petWindow?.webContents.send('open-settings') },
+    { label: 'Customize pet…', click: () => petWindow?.webContents.send('open-settings') },
     {
-      label: 'Coat colour',
+      label: 'Pattern',
       submenu: [
-        ['brown', 'White & brown'], ['golden', 'White & golden'], ['cocoa', 'White & cocoa'],
-        ['ash', 'White & ash'], ['cream', 'Cream & caramel']
+        ['mask','Face mask'], ['tuxedo','Tuxedo'], ['socks','Socks'],
+        ['spots','Spots'], ['calico','Calico'], ['tabby','Tabby'], ['solid','Solid']
       ].map(([value, label]) => ({
-        label, type: 'radio', checked: settings.coat === value,
-        click: () => updateProfile({ coat: value })
+        label, type: 'radio', checked: settings.pattern === value,
+        click: () => updateProfile({ pattern: value, style: 'pixel' })
       }))
+    },
+    {
+      label: 'Art style',
+      submenu: [
+        { label:'Pixel', type:'radio', checked:settings.style === 'pixel', click:() => updateProfile({ style:'pixel' }) },
+        { label:'Classic', type:'radio', checked:settings.style === 'classic', click:() => updateProfile({ style:'classic' }) }
+      ]
+    },
+    { type: 'separator' },
+    { label: 'Start 25-minute focus', click: startFocusSession },
+    {
+      label: 'Water reminders (45 min)', type: 'checkbox', checked: settings.waterReminders,
+      click: item => updateProfile({ waterReminders: item.checked })
+    },
+    {
+      label: 'Stretch reminders (60 min)', type: 'checkbox', checked: settings.stretchReminders,
+      click: item => updateProfile({ stretchReminders: item.checked })
     },
     { type: 'separator' },
     {
@@ -229,8 +268,14 @@ function choosePet(pet) {
 function updateProfile(next = {}) {
   if (PETS.has(next.pet)) settings.pet = next.pet;
   if (Object.hasOwn(next, 'petName')) settings.petName = sanitizeName(next.petName, settings.pet);
-  if (COATS.has(next.coat)) settings.coat = next.coat;
+  if (STYLES.has(next.style)) settings.style = next.style;
+  if (PATTERNS.has(next.pattern)) settings.pattern = next.pattern;
+  if (Object.hasOwn(next, 'baseColor')) settings.baseColor = sanitizeHex(next.baseColor, settings.baseColor);
+  if (Object.hasOwn(next, 'patchColor')) settings.patchColor = sanitizeHex(next.patchColor, settings.patchColor);
+  if (Object.hasOwn(next, 'eyeColor')) settings.eyeColor = sanitizeHex(next.eyeColor, settings.eyeColor);
   if (typeof next.reactionsPaused === 'boolean') settings.reactionsPaused = next.reactionsPaused;
+  if (typeof next.waterReminders === 'boolean') settings.waterReminders = next.waterReminders;
+  if (typeof next.stretchReminders === 'boolean') settings.stretchReminders = next.stretchReminders;
   if (typeof next.launchAtLogin === 'boolean') {
     settings.launchAtLogin = next.launchAtLogin;
     app.setLoginItemSettings({ openAtLogin: next.launchAtLogin });
@@ -239,7 +284,26 @@ function updateProfile(next = {}) {
   refreshTrayMenu();
   tray?.setToolTip(`${settings.petName} · Cozy Companions`);
   petWindow?.webContents.send('settings-changed', { ...settings });
+  refreshWellnessTimers();
   return { ...settings };
+}
+
+function sendReminder(kind) {
+  if (!petWindow || petWindow.isDestroyed()) return;
+  petWindow.webContents.send('wellness-reminder', kind);
+}
+
+function startFocusSession() {
+  clearTimeout(focusTimer);
+  petWindow?.webContents.send('wellness-reminder', 'Focus started — I’ll watch the clock!');
+  focusTimer = setTimeout(() => sendReminder('focus'), 25 * 60 * 1000);
+}
+
+function refreshWellnessTimers() {
+  clearInterval(waterTimer);
+  clearInterval(stretchTimer);
+  waterTimer = settings.waterReminders ? setInterval(() => sendReminder('water'), 45 * 60 * 1000) : null;
+  stretchTimer = settings.stretchReminders ? setInterval(() => sendReminder('stretch'), 60 * 60 * 1000) : null;
 }
 
 function startGlobalInput() {
@@ -251,7 +315,8 @@ function startGlobalInput() {
       const now = Date.now();
       if (now - lastTypingPulse >= 75) {
         lastTypingPulse = now;
-        petWindow.webContents.send('typing-pulse');
+        typingSide = typingSide === 'left' ? 'right' : 'left';
+        petWindow.webContents.send('typing-pulse', { side: typingSide });
       }
       // Deliberately discard the key code. Only anonymous activity is used.
     });
@@ -291,6 +356,7 @@ if (hasSingleInstanceLock) {
     createWindow();
     createTray();
     startGlobalInput();
+    refreshWellnessTimers();
     app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
   });
 }
@@ -301,6 +367,9 @@ app.on('window-all-closed', () => {});
 app.on('before-quit', () => {
   if (cursorTimer) clearInterval(cursorTimer);
   if (saveTimer) clearTimeout(saveTimer);
+  if (focusTimer) clearTimeout(focusTimer);
+  if (waterTimer) clearInterval(waterTimer);
+  if (stretchTimer) clearInterval(stretchTimer);
   try { globalHook?.stop(); } catch {}
   saveSettings();
 });

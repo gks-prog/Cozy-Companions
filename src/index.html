@@ -1,77 +1,94 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cozy Companions</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main id="stage" aria-live="polite">
-      <section id="chooser" class="chooser hidden" aria-label="Choose your companion">
-        <div class="chooser-card">
-          <p class="eyebrow">COZY COMPANIONS</p>
-          <h1>Who’s staying with you?</h1>
-          <label class="name-field">
-            <span>Name your pet</span>
-            <input id="starter-name" type="text" maxlength="18" placeholder="Milo or Mochi" autocomplete="off" spellcheck="false" />
-          </label>
-          <div class="choices">
-            <button class="choice" data-pet="puppy" aria-label="Choose the puppy">
-              <span class="choice-sprite puppy"></span>
-              <strong>Puppy</strong>
-              <small>Playful & loyal</small>
-            </button>
-            <button class="choice" data-pet="kitten" aria-label="Choose the kitten">
-              <span class="choice-sprite kitten"></span>
-              <strong>Kitten</strong>
-              <small>Curious & calm</small>
-            </button>
-          </div>
-          <p class="hint">You can switch anytime from the tray icon.</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cozy Companions</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="stage" aria-live="polite">
+    <section id="chooser" class="panel hidden" aria-label="Choose your companion">
+      <div class="card">
+        <p class="eyebrow">COZY COMPANIONS</p>
+        <h1>Who’s staying with you?</h1>
+        <label class="field"><span>Name your pet</span>
+          <input id="starter-name" type="text" maxlength="18" placeholder="Milo or Mochi" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="choices">
+          <button class="choice" data-pet="puppy" aria-label="Choose the puppy">
+            <canvas class="choice-canvas" data-preview="puppy" width="64" height="64"></canvas>
+            <strong>Puppy</strong><small>Playful & loyal</small>
+          </button>
+          <button class="choice" data-pet="kitten" aria-label="Choose the cat">
+            <canvas class="choice-canvas" data-preview="kitten" width="64" height="64"></canvas>
+            <strong>Cat</strong><small>Curious & calm</small>
+          </button>
         </div>
-      </section>
+        <p class="hint">Drag anywhere · right-click for controls</p>
+      </div>
+    </section>
 
-      <section id="customizer" class="customizer hidden" aria-label="Customize your pet">
-        <form id="customizer-form" class="customizer-card">
-          <p class="eyebrow">YOUR COMPANION</p>
-          <h2>Make them yours</h2>
-          <label class="name-field">
-            <span>Pet name</span>
+    <section id="customizer" class="panel hidden" aria-label="Customize your pet">
+      <form id="customizer-form" class="card customizer-card">
+        <p class="eyebrow">YOUR COMPANION</p>
+        <h2>Make them yours</h2>
+        <div class="top-grid">
+          <label class="field"><span>Pet name</span>
             <input id="pet-name" type="text" maxlength="18" required autocomplete="off" spellcheck="false" />
           </label>
-          <fieldset>
-            <legend>Companion</legend>
-            <div class="segment">
-              <button type="button" data-kind="puppy">Puppy</button>
-              <button type="button" data-kind="kitten">Kitten</button>
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Coat colour</legend>
-            <div id="coat-options" class="swatches">
-              <button type="button" data-coat="brown" style="--swatch:#9b6548" aria-label="White and brown"></button>
-              <button type="button" data-coat="golden" style="--swatch:#d4943d" aria-label="White and golden"></button>
-              <button type="button" data-coat="cocoa" style="--swatch:#594039" aria-label="White and cocoa"></button>
-              <button type="button" data-coat="ash" style="--swatch:#888987" aria-label="White and ash"></button>
-              <button type="button" data-coat="cream" style="--swatch:#d3ad82" aria-label="Cream and caramel"></button>
-            </div>
-          </fieldset>
-          <div class="bond-row"><span>Bond</span><progress id="bond" max="100" value="50"></progress><strong id="bond-value">50%</strong></div>
-          <div class="actions">
-            <button id="cancel-customizer" class="secondary" type="button">Cancel</button>
-            <button class="primary" type="submit">Save changes</button>
+          <label class="field"><span>Pattern</span>
+            <select id="pet-pattern">
+              <option value="mask">Face mask</option>
+              <option value="tuxedo">Tuxedo</option>
+              <option value="socks">Socks</option>
+              <option value="spots">Spots</option>
+              <option value="calico">Calico</option>
+              <option value="tabby">Tabby</option>
+              <option value="solid">Solid</option>
+            </select>
+          </label>
+        </div>
+        <fieldset><legend>Companion</legend>
+          <div class="segment">
+            <button type="button" data-kind="puppy">Puppy</button>
+            <button type="button" data-kind="kitten">Cat</button>
           </div>
-        </form>
-      </section>
+        </fieldset>
+        <fieldset><legend>Art style</legend>
+          <div class="segment">
+            <button type="button" data-style="pixel">Pixel</button>
+            <button type="button" data-style="classic">Classic</button>
+          </div>
+          <small id="style-note">Pixel supports exact colours and patterns. Classic preserves the original art.</small>
+        </fieldset>
+        <fieldset class="palette-field"><legend>Pixel palette</legend>
+          <div class="colors">
+            <label><input id="base-color" type="color" value="#f4eadb"><span>Body</span></label>
+            <label><input id="patch-color" type="color" value="#9b6548"><span>Patches</span></label>
+            <label><input id="eye-color" type="color" value="#d89b35"><span>Eyes</span></label>
+          </div>
+        </fieldset>
+        <div class="bond-row"><span>Bond</span><progress id="bond" max="100" value="50"></progress><strong id="bond-value">50%</strong></div>
+        <div class="actions">
+          <button id="cancel-customizer" class="secondary" type="button">Cancel</button>
+          <button class="primary" type="submit">Save changes</button>
+        </div>
+      </form>
+    </section>
 
-      <section id="pet-wrap" class="pet-wrap hidden" aria-label="Your desktop companion">
-        <div id="thought" class="thought" aria-hidden="true"></div>
-        <div id="pet" class="pet" role="button" tabindex="0" aria-label="Pet your companion"></div>
-        <div id="heart" class="heart" aria-hidden="true">♥</div>
-      </section>
-    </main>
-    <script src="renderer.js"></script>
-  </body>
+    <section id="pet-wrap" class="pet-wrap hidden" aria-label="Your desktop companion">
+      <div id="thought" class="thought" aria-hidden="true"></div>
+      <div id="pet" class="pet pixel" role="button" tabindex="0" aria-label="Pet your companion">
+        <canvas id="pixel-pet" width="64" height="64"></canvas>
+        <span id="classic-pet" class="classic-pet"></span>
+      </div>
+      <div id="heart" class="heart" aria-hidden="true">♥</div>
+    </section>
+  </main>
+  <script src="pixel-pet.js"></script>
+  <script src="renderer.js"></script>
+</body>
 </html>
+

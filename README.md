@@ -1,39 +1,44 @@
 # Cozy Companions
 
-A small, affectionate Windows desktop pet. Choose a white-and-brown puppy or kitten, drag it anywhere across your screens, pet it with the cursor, and watch it respond to your typing without recording what you type.
+An original, privacy-conscious pixel pet for Windows. Keep a tiny cat or puppy above your desktop, drag them anywhere, name them, recolour every coat layer, and watch them react to your cursor and keyboard activity.
 
-## Features
+> Cozy Companions is an independent project. It is inspired by the general desktop-pet genre and does not contain Comnyang code, artwork, sprites, branding, or copied animation frames.
 
-- Transparent, always-on-top Windows companion
-- Puppy and kitten selector
-- Custom pet names and five coat-colour themes
-- Drag anywhere, including multi-monitor desktops
-- Cursor tracking, clicking and stroking reactions
-- Privacy-safe global typing activity reactions
-- Sleep, wake, happy, startled and playful behaviours
-- Local affection memory
-- Optional launch with Windows
-- Tray menu for switching pets, pausing reactions and quitting
-- No accounts, ads, analytics or network access
+## Download
 
-## Install
+Open the repository’s [latest release](https://github.com/gks-prog/Cozy-Companions/releases/tag/latest), download `Cozy-Companions-Setup-2.0.0.exe`, and run it.
 
-Open this repository’s **Releases** page, download `Cozy-Companions-Setup-1.0.0.exe`, and run it.
+Windows may show an unknown-publisher warning until the installer is signed with a commercial code-signing certificate.
 
-Windows may warn about an unknown publisher until the installer is signed with a commercial code-signing certificate. That warning does not mean the app collects typed content; the source is included here for inspection.
+## What’s new in 2.0
+
+- Original crisp pixel cat and puppy, drawn at runtime with a tiny indexed-style palette
+- Exact body, patch, and eye colour pickers
+- Seven patterns: face mask, tuxedo, socks, spots, calico, tabby, and solid
+- Alternating left/right typing paws without storing key identities
+- Cursor gaze, quick-cursor pounce, petting, dragging, blink, groom, sleep, wake, happy, and startled reactions
+- Preserved v1 painted puppy and cat under the **Classic** art style
+- Optional 25-minute focus timer, 45-minute water reminders, and hourly stretch reminders
+- Local names, bond level, appearance, reminder preferences, and multi-monitor position memory
+- No account, advertising, analytics, or network activity
 
 ## Controls
 
-- **Click the pet:** show affection
-- **Rub the cursor over the pet:** pet it
-- **Drag the pet:** move it anywhere
-- **Right-click the pet:** open controls
-- **Double-click the tray icon:** switch puppy/kitten
-- **Double-click the pet:** customize its name, species and coat
+- **Click or rub:** give affection
+- **Drag:** place the pet anywhere on any connected display
+- **Move the cursor nearby:** eyes follow it; quick movement may trigger a pounce
+- **Type:** the pet alternates its paws (only anonymous activity pulses are used)
+- **Double-click:** open name and appearance customization
+- **Right-click:** open the tray controls
+- **Double-click the tray icon:** switch cat or puppy
 
 ## Privacy
 
-The keyboard listener discards key identities immediately and emits only a throttled “typing happened” pulse. No typed text, key code, clipboard content, window title or browsing activity is saved or transmitted. Pet preferences and affection are stored locally in Electron’s application data directory.
+The keyboard hook immediately discards the key code and emits only a throttled “typing happened” pulse with an alternating animation side. It never stores or transmits typed text, clipboard contents, window titles, or browsing activity. Preferences are stored locally in Electron’s application-data directory.
+
+## Installer size
+
+The installer uses maximum compression, a single x64 target, one Electron language, and ASAR packaging. Electron’s bundled Chromium runtime still accounts for most of the roughly 100 MB download. Pixel art itself is tiny; substantially reducing the installer further would require a future move from Electron to a native Windows/WebView2 or Tauri shell.
 
 ## Development
 
@@ -42,10 +47,12 @@ npm install
 npm start
 ```
 
-Create the Windows installer:
+Run checks and create the Windows installer:
 
 ```bash
+npm test
 npm run dist
 ```
 
-The included GitHub Actions workflow builds the installer on Windows and publishes it under the repository’s `latest` release.
+GitHub Actions builds on Windows and updates the public `latest` release.
+
