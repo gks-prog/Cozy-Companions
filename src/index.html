@@ -13,6 +13,10 @@
         <div class="chooser-card">
           <p class="eyebrow">COZY COMPANIONS</p>
           <h1>Who’s staying with you?</h1>
+          <label class="name-field">
+            <span>Name your pet</span>
+            <input id="starter-name" type="text" maxlength="18" placeholder="Milo or Mochi" autocomplete="off" spellcheck="false" />
+          </label>
           <div class="choices">
             <button class="choice" data-pet="puppy" aria-label="Choose the puppy">
               <span class="choice-sprite puppy"></span>
@@ -27,6 +31,39 @@
           </div>
           <p class="hint">You can switch anytime from the tray icon.</p>
         </div>
+      </section>
+
+      <section id="customizer" class="customizer hidden" aria-label="Customize your pet">
+        <form id="customizer-form" class="customizer-card">
+          <p class="eyebrow">YOUR COMPANION</p>
+          <h2>Make them yours</h2>
+          <label class="name-field">
+            <span>Pet name</span>
+            <input id="pet-name" type="text" maxlength="18" required autocomplete="off" spellcheck="false" />
+          </label>
+          <fieldset>
+            <legend>Companion</legend>
+            <div class="segment">
+              <button type="button" data-kind="puppy">Puppy</button>
+              <button type="button" data-kind="kitten">Kitten</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Coat colour</legend>
+            <div id="coat-options" class="swatches">
+              <button type="button" data-coat="brown" style="--swatch:#9b6548" aria-label="White and brown"></button>
+              <button type="button" data-coat="golden" style="--swatch:#d4943d" aria-label="White and golden"></button>
+              <button type="button" data-coat="cocoa" style="--swatch:#594039" aria-label="White and cocoa"></button>
+              <button type="button" data-coat="ash" style="--swatch:#888987" aria-label="White and ash"></button>
+              <button type="button" data-coat="cream" style="--swatch:#d3ad82" aria-label="Cream and caramel"></button>
+            </div>
+          </fieldset>
+          <div class="bond-row"><span>Bond</span><progress id="bond" max="100" value="50"></progress><strong id="bond-value">50%</strong></div>
+          <div class="actions">
+            <button id="cancel-customizer" class="secondary" type="button">Cancel</button>
+            <button class="primary" type="submit">Save changes</button>
+          </div>
+        </form>
       </section>
 
       <section id="pet-wrap" class="pet-wrap hidden" aria-label="Your desktop companion">

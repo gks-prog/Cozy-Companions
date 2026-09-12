@@ -30,7 +30,13 @@ jobs:
         run: |
           $asset = Get-ChildItem "dist/Cozy-Companions-Setup-*.exe" | Select-Object -First 1
           if (gh release view latest 2>$null) {
+            $oldAssets = gh release view latest --json assets --jq '.assets[].name'
+            foreach ($oldAsset in $oldAssets) {
+              if ($oldAsset -ne $asset.Name) {
+                gh release delete-asset latest $oldAsset --yes
+              }
+            }
             gh release upload latest $asset.FullName --clobber
           } else {
-            gh release create latest $asset.FullName --title "Cozy Companions" --notes "Latest Windows installer. Download the .exe, install, then choose your puppy or kitten."
+            gh release create latest $asset.FullName --title "Cozy Companions" --notes "Latest Windows installer. Choose a puppy or kitten, name them, customize their coat, and keep them anywhere on your desktop."
           }

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('petAPI', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
+  updateProfile: profile => ipcRenderer.invoke('update-profile', profile),
   selectPet: pet => ipcRenderer.send('select-pet', pet),
   setClickThrough: value => ipcRenderer.send('set-click-through', value),
   moveWindow: position => ipcRenderer.send('move-window', position),
@@ -12,5 +13,6 @@ contextBridge.exposeInMainWorld('petAPI', {
   onWake: callback => ipcRenderer.on('wake-up', callback),
   onSelectPet: callback => ipcRenderer.on('pet-selected', (_event, value) => callback(value)),
   onOpenSelector: callback => ipcRenderer.on('open-selector', callback),
+  onOpenSettings: callback => ipcRenderer.on('open-settings', callback),
   onSettings: callback => ipcRenderer.on('settings-changed', (_event, value) => callback(value))
 });

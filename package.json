@@ -1,12 +1,13 @@
 {
   "name": "cozy-companions",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A private, affectionate Windows desktop pet with a puppy and kitten.",
   "main": "src/main.js",
   "author": "Gaurav Kumar Sharma",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "test": "node tests/smoke.js && node --check src/main.js && node --check src/preload.js && node --check src/renderer.js",
     "dist": "electron-builder --win nsis --publish never",
     "pack": "electron-builder --dir"
   },
@@ -20,6 +21,8 @@
   "build": {
     "appId": "in.wenonbont.cozycompanions",
     "productName": "Cozy Companions",
+    "compression": "maximum",
+    "electronLanguages": ["en-US"],
     "asar": true,
     "npmRebuild": false,
     "asarUnpack": [

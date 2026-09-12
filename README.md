@@ -6,6 +6,7 @@ A small, affectionate Windows desktop pet. Choose a white-and-brown puppy or kit
 
 - Transparent, always-on-top Windows companion
 - Puppy and kitten selector
+- Custom pet names and five coat-colour themes
 - Drag anywhere, including multi-monitor desktops
 - Cursor tracking, clicking and stroking reactions
 - Privacy-safe global typing activity reactions
@@ -28,6 +29,7 @@ Windows may warn about an unknown publisher until the installer is signed with a
 - **Drag the pet:** move it anywhere
 - **Right-click the pet:** open controls
 - **Double-click the tray icon:** switch puppy/kitten
+- **Double-click the pet:** customize its name, species and coat
 
 ## Privacy
 

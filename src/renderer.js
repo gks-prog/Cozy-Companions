@@ -1,8 +1,14 @@
 const pet = document.querySelector('#pet');
 const wrap = document.querySelector('#pet-wrap');
 const chooser = document.querySelector('#chooser');
+const customizer = document.querySelector('#customizer');
+const customizerForm = document.querySelector('#customizer-form');
+const starterName = document.querySelector('#starter-name');
+const petNameInput = document.querySelector('#pet-name');
 const thought = document.querySelector('#thought');
 const heart = document.querySelector('#heart');
+const bond = document.querySelector('#bond');
+const bondValue = document.querySelector('#bond-value');
 
 const cells = {
   puppy: {
@@ -15,9 +21,10 @@ const cells = {
   }
 };
 
-let activePet = 'puppy';
-let paused = false;
+let profile = { pet: 'puppy', petName: 'Milo', coat: 'brown', affection: 50, reactionsPaused: false };
+let draft = { pet: 'puppy', coat: 'brown' };
 let idleTimer;
+let personalityTimer;
 let stateTimer;
 let messageTimer;
 let typingWindow = [];
@@ -28,13 +35,29 @@ let strokeDistance = 0;
 let strokeDirection = 0;
 let strokes = 0;
 
+function safeName(value, kind = profile.pet) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 18) || (kind === 'kitten' ? 'Mochi' : 'Milo');
+}
+
 function setCell(name) {
-  const [column, row] = cells[activePet][name] || cells[activePet].idle;
+  const kind = cells[profile.pet] ? profile.pet : 'puppy';
+  const [column, row] = cells[kind][name] || cells[kind].idle;
   pet.style.backgroundPosition = `${column * 33.333333}% ${row * 33.333333}%`;
 }
 
+function applyProfile(next) {
+  profile = { ...profile, ...next };
+  profile.petName = safeName(profile.petName, profile.pet);
+  const kind = cells[profile.pet] ? profile.pet : 'puppy';
+  pet.className = `pet ${kind} coat-${profile.coat || 'brown'}`;
+  pet.setAttribute('aria-label', `Pet ${profile.petName}`);
+  bond.value = Number(profile.affection) || 0;
+  bondValue.textContent = `${Math.round(bond.value)}%`;
+  setState('idle');
+}
+
 function setState(name, duration = 0) {
-  if (paused && name !== 'idle') return;
+  if (profile.reactionsPaused && name !== 'idle') return;
   clearTimeout(stateTimer);
   pet.classList.remove('typing', 'happy', 'startled', 'sleeping', 'dragging');
   setCell(name);
@@ -59,19 +82,67 @@ function popHeart() {
   heart.classList.add('pop');
 }
 
-function choose(type) {
-  activePet = type;
-  pet.className = `pet ${type}`;
-  setState('happy', 700);
+async function choose(kind) {
+  const next = await window.petAPI.updateProfile({
+    pet: kind,
+    petName: safeName(starterName.value, kind),
+    coat: 'brown'
+  });
+  applyProfile(next);
   chooser.classList.add('hidden');
   wrap.classList.remove('hidden');
-  window.petAPI.selectPet(type);
-  showThought(type === 'puppy' ? 'Woof! ♥' : 'Purr… ♥', 1100);
+  setState('happy', 700);
+  showThought(`${profile.petName} is home! ♥`, 1500);
 }
 
 document.querySelectorAll('.choice').forEach(button => {
   button.addEventListener('click', () => choose(button.dataset.pet));
 });
+
+function refreshCustomizer() {
+  petNameInput.value = profile.petName;
+  draft = { pet: profile.pet, coat: profile.coat || 'brown' };
+  document.querySelectorAll('[data-kind]').forEach(button => button.classList.toggle('active', button.dataset.kind === draft.pet));
+  document.querySelectorAll('[data-coat]').forEach(button => button.classList.toggle('active', button.dataset.coat === draft.coat));
+  bond.value = Number(profile.affection) || 0;
+  bondValue.textContent = `${Math.round(bond.value)}%`;
+}
+
+function openCustomizer() {
+  refreshCustomizer();
+  wrap.classList.add('hidden');
+  chooser.classList.add('hidden');
+  customizer.classList.remove('hidden');
+  window.petAPI.setClickThrough(false);
+  setTimeout(() => petNameInput.focus(), 50);
+}
+
+function closeCustomizer() {
+  customizer.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  window.petAPI.setClickThrough(true);
+}
+
+document.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
+  draft.pet = button.dataset.kind;
+  document.querySelectorAll('[data-kind]').forEach(item => item.classList.toggle('active', item === button));
+}));
+
+document.querySelectorAll('[data-coat]').forEach(button => button.addEventListener('click', () => {
+  draft.coat = button.dataset.coat;
+  document.querySelectorAll('[data-coat]').forEach(item => item.classList.toggle('active', item === button));
+}));
+
+customizerForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const next = await window.petAPI.updateProfile({ ...draft, petName: safeName(petNameInput.value, draft.pet) });
+  applyProfile(next);
+  closeCustomizer();
+  setState('happy', 650);
+  showThought(`I’m ${profile.petName}!`, 1300);
+});
+
+document.querySelector('#cancel-customizer').addEventListener('click', closeCustomizer);
 
 pet.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
@@ -112,12 +183,14 @@ function finishPointer(event) {
     setState('happy', 650);
     popHeart();
     window.petAPI.addAffection(1);
+    profile.affection = Math.min(100, Number(profile.affection) + 1);
   }
   drag = null;
 }
 
 pet.addEventListener('pointerup', finishPointer);
 pet.addEventListener('pointercancel', finishPointer);
+pet.addEventListener('dblclick', openCustomizer);
 pet.addEventListener('contextmenu', event => {
   event.preventDefault();
   window.petAPI.showMenu();
@@ -132,6 +205,11 @@ pet.addEventListener('keydown', event => {
 });
 
 window.petAPI.onCursor(position => {
+  const panelOpen = !customizer.classList.contains('hidden') || !chooser.classList.contains('hidden');
+  if (panelOpen) {
+    lastCursor = position;
+    return;
+  }
   const center = 160;
   const dx = position.x - center;
   const dy = position.y - center;
@@ -143,12 +221,10 @@ window.petAPI.onCursor(position => {
     window.petAPI.setClickThrough(!inside);
   }
 
-  if (!drag && !paused) {
+  if (!drag && !profile.reactionsPaused) {
     const tilt = Math.max(-4, Math.min(4, dx / 34));
     pet.style.setProperty('--cursor-tilt', `${tilt}deg`);
-    if (distance < 190 && !pet.classList.contains('typing') && !pet.classList.contains('happy')) {
-      setCell('look');
-    }
+    if (distance < 190 && !pet.classList.contains('typing') && !pet.classList.contains('happy')) setCell('look');
   }
 
   if (inside && lastCursor && !drag) {
@@ -164,6 +240,7 @@ window.petAPI.onCursor(position => {
         setState('happy', 800);
         popHeart();
         window.petAPI.addAffection(2);
+        profile.affection = Math.min(100, Number(profile.affection) + 2);
         strokeDistance = 0;
         strokes = 0;
       }
@@ -179,22 +256,37 @@ window.petAPI.onCursor(position => {
 function resetIdleTimer() {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
-    if (!drag && !paused) {
+    if (!drag && !profile.reactionsPaused) {
       setState('sleep');
       showThought('z z z', 2400);
     }
   }, 1000 * 60 * 4);
 }
 
+function schedulePersonalityMoment() {
+  clearTimeout(personalityTimer);
+  personalityTimer = setTimeout(() => {
+    if (!drag && !profile.reactionsPaused && customizer.classList.contains('hidden') && chooser.classList.contains('hidden')) {
+      const moments = [
+        () => setState('blink', 380),
+        () => setState('play', 900),
+        () => showThought(profile.pet === 'puppy' ? 'Play?' : 'Purr…', 1000)
+      ];
+      moments[Math.floor(Math.random() * moments.length)]();
+    }
+    schedulePersonalityMoment();
+  }, 12000 + Math.random() * 16000);
+}
+
 window.petAPI.onTyping(() => {
-  if (paused || drag) return;
+  if (profile.reactionsPaused || drag) return;
   const now = Date.now();
   typingWindow.push(now);
   typingWindow = typingWindow.filter(time => now - time < 1300);
   setState('typing', 250);
   if (typingWindow.length >= 9) {
-    setCell('play');
-    showThought(activePet === 'puppy' ? 'You’ve got this!' : 'Busy human…', 1100);
+    setState('play', 900);
+    showThought(profile.pet === 'puppy' ? `${profile.petName} believes in you!` : `${profile.petName} is supervising…`, 1300);
     typingWindow = [];
   }
   resetIdleTimer();
@@ -202,41 +294,38 @@ window.petAPI.onTyping(() => {
 
 window.petAPI.onWake(() => {
   setState('happy', 850);
-  showThought('You’re back! ♥', 1500);
+  showThought(`${profile.petName} missed you! ♥`, 1500);
 });
 
-window.petAPI.onSelectPet(type => {
-  if (type === 'puppy' || type === 'kitten') {
-    activePet = type;
-    pet.className = `pet ${type}`;
-    chooser.classList.add('hidden');
-    wrap.classList.remove('hidden');
-    setState('happy', 700);
-  }
+window.petAPI.onSelectPet(next => {
+  applyProfile(next);
+  customizer.classList.add('hidden');
+  chooser.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  setState('happy', 700);
 });
 
 window.petAPI.onOpenSelector(() => {
+  starterName.value = profile.petName;
   wrap.classList.add('hidden');
+  customizer.classList.add('hidden');
   chooser.classList.remove('hidden');
   window.petAPI.setClickThrough(false);
 });
 
-window.petAPI.onSettings(next => {
-  paused = Boolean(next.reactionsPaused);
-  if (paused) setState('idle');
-});
+window.petAPI.onOpenSettings(openCustomizer);
+window.petAPI.onSettings(next => applyProfile(next));
 
 window.petAPI.getSettings().then(current => {
-  paused = Boolean(current.reactionsPaused);
+  applyProfile(current);
   if (current.pet === 'puppy' || current.pet === 'kitten') {
-    activePet = current.pet;
-    pet.className = `pet ${activePet}`;
     wrap.classList.remove('hidden');
-    setState('idle');
     window.petAPI.setClickThrough(true);
   } else {
+    starterName.value = '';
     chooser.classList.remove('hidden');
     window.petAPI.setClickThrough(false);
   }
   resetIdleTimer();
+  schedulePersonalityMoment();
 });

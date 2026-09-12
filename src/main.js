@@ -9,10 +9,26 @@ let tray;
 let globalHook;
 let cursorTimer;
 let lastTypingPulse = 0;
+let lastCursorPoint;
+let saveTimer;
 let settings = {};
+
+const PETS = new Set(['puppy', 'kitten']);
+const COATS = new Set(['brown', 'golden', 'cocoa', 'ash', 'cream']);
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    petWindow?.showInactive();
+    petWindow?.webContents.send('wake-up');
+  });
+}
 
 const defaults = {
   pet: null,
+  petName: '',
+  coat: 'brown',
   affection: 50,
   energy: 100,
   reactionsPaused: false,
@@ -30,14 +46,32 @@ function loadSettings() {
   } catch {
     settings = { ...defaults };
   }
+  settings.pet = PETS.has(settings.pet) ? settings.pet : null;
+  settings.petName = sanitizeName(settings.petName, settings.pet);
+  settings.coat = COATS.has(settings.coat) ? settings.coat : 'brown';
+  settings.affection = Math.max(0, Math.min(100, Number(settings.affection) || 50));
 }
 
 function saveSettings() {
   try {
-    fs.writeFileSync(settingsPath(), JSON.stringify(settings, null, 2));
+    const target = settingsPath();
+    const temporary = `${target}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify(settings, null, 2));
+    fs.renameSync(temporary, target);
   } catch (error) {
     console.error('Could not save pet memory:', error.message);
   }
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSettings, 250);
+}
+
+function sanitizeName(value, petType = settings.pet) {
+  const cleaned = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 18);
+  if (cleaned) return cleaned;
+  return petType === 'kitten' ? 'Mochi' : petType === 'puppy' ? 'Milo' : '';
 }
 
 function safeInitialPosition() {
@@ -101,6 +135,8 @@ function createWindow() {
   cursorTimer = setInterval(() => {
     if (!petWindow || petWindow.isDestroyed()) return;
     const point = screen.getCursorScreenPoint();
+    if (lastCursorPoint && point.x === lastCursorPoint.x && point.y === lastCursorPoint.y) return;
+    lastCursorPoint = point;
     const bounds = petWindow.getBounds();
     petWindow.webContents.send('cursor-position', {
       x: point.x - bounds.x,
@@ -115,20 +151,20 @@ function rememberPosition() {
   if (!petWindow || petWindow.isDestroyed()) return;
   const bounds = petWindow.getBounds();
   settings.windowPosition = { x: bounds.x, y: bounds.y };
-  saveSettings();
+  scheduleSave();
 }
 
 function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'tray.png')).resize({ width: 20, height: 20 });
   tray = new Tray(icon);
-  tray.setToolTip('Cozy Companions');
+  tray.setToolTip(settings.petName ? `${settings.petName} · Cozy Companions` : 'Cozy Companions');
   refreshTrayMenu();
   tray.on('double-click', () => petWindow?.webContents.send('open-selector'));
 }
 
 function refreshTrayMenu() {
   const menu = Menu.buildFromTemplate([
-    { label: 'Choose your companion', enabled: false },
+    { label: settings.petName ? `${settings.petName} · ${settings.affection}% bond` : 'Choose your companion', enabled: false },
     {
       label: 'Puppy', type: 'radio', checked: settings.pet === 'puppy',
       click: () => choosePet('puppy')
@@ -136,6 +172,18 @@ function refreshTrayMenu() {
     {
       label: 'Kitten', type: 'radio', checked: settings.pet === 'kitten',
       click: () => choosePet('kitten')
+    },
+    { type: 'separator' },
+    { label: 'Customize name & coat…', click: () => petWindow?.webContents.send('open-settings') },
+    {
+      label: 'Coat colour',
+      submenu: [
+        ['brown', 'White & brown'], ['golden', 'White & golden'], ['cocoa', 'White & cocoa'],
+        ['ash', 'White & ash'], ['cream', 'Cream & caramel']
+      ].map(([value, label]) => ({
+        label, type: 'radio', checked: settings.coat === value,
+        click: () => updateProfile({ coat: value })
+      }))
     },
     { type: 'separator' },
     {
@@ -170,9 +218,27 @@ function refreshTrayMenu() {
 
 function choosePet(pet) {
   settings.pet = pet;
+  settings.petName = sanitizeName(settings.petName, pet);
   saveSettings();
   refreshTrayMenu();
-  petWindow?.webContents.send('pet-selected', pet);
+  tray?.setToolTip(`${settings.petName} · Cozy Companions`);
+  petWindow?.webContents.send('pet-selected', { ...settings });
+}
+
+function updateProfile(next = {}) {
+  if (PETS.has(next.pet)) settings.pet = next.pet;
+  if (Object.hasOwn(next, 'petName')) settings.petName = sanitizeName(next.petName, settings.pet);
+  if (COATS.has(next.coat)) settings.coat = next.coat;
+  if (typeof next.reactionsPaused === 'boolean') settings.reactionsPaused = next.reactionsPaused;
+  if (typeof next.launchAtLogin === 'boolean') {
+    settings.launchAtLogin = next.launchAtLogin;
+    app.setLoginItemSettings({ openAtLogin: next.launchAtLogin });
+  }
+  saveSettings();
+  refreshTrayMenu();
+  tray?.setToolTip(`${settings.petName} · Cozy Companions`);
+  petWindow?.webContents.send('settings-changed', { ...settings });
+  return { ...settings };
 }
 
 function startGlobalInput() {
@@ -201,6 +267,7 @@ ipcMain.handle('get-settings', () => ({ ...settings, petSize: PET_SIZE }));
 ipcMain.on('select-pet', (_event, pet) => {
   if (pet === 'puppy' || pet === 'kitten') choosePet(pet);
 });
+ipcMain.handle('update-profile', (_event, next) => updateProfile(next));
 ipcMain.on('set-click-through', (_event, value) => {
   if (!petWindow || petWindow.isDestroyed()) return;
   petWindow.setIgnoreMouseEvents(Boolean(value), { forward: true });
@@ -213,6 +280,7 @@ ipcMain.on('move-window', (_event, position) => {
 ipcMain.on('affection', (_event, delta) => {
   settings.affection = Math.max(0, Math.min(100, settings.affection + Number(delta || 0)));
   saveSettings();
+  refreshTrayMenu();
 });
 ipcMain.on('show-menu', () => tray?.popUpContextMenu());
 
@@ -229,6 +297,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {});
 app.on('before-quit', () => {
   if (cursorTimer) clearInterval(cursorTimer);
+  if (saveTimer) clearTimeout(saveTimer);
   try { globalHook?.stop(); } catch {}
   saveSettings();
 });
